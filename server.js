@@ -3,7 +3,7 @@ const os = require('os');
 const express = require('express');
 const { buildDashboard, getSessionTimeline } = require('./lib/aggregate');
 const { killAllHarnessProcesses } = require('./lib/processes');
-const { router: otelRouter } = require('./lib/otel');
+const { router: otelRouter, listFleetStatus } = require('./lib/otel');
 const { readHistory } = require('./lib/history');
 const { sessionsToCsv } = require('./lib/csv');
 
@@ -82,8 +82,14 @@ app.get('/api/history', (req, res) => {
   res.json({ history: readHistory() });
 });
 
+app.get('/api/fleet', (req, res) => {
+  res.json({ fleet: listFleetStatus() });
+});
+
 app.get('/api/session/:id', (req, res) => {
-  const result = getSessionTimeline(DSH_HOME, req.params.id, Number(req.query.limit) || 500);
+  const limit = Number(req.query.limit) || 100;
+  const beforeSeq = req.query.beforeSeq != null ? Number(req.query.beforeSeq) : null;
+  const result = getSessionTimeline(DSH_HOME, req.params.id, limit, beforeSeq);
   if (!result) return res.status(404).json({ error: 'session not found' });
   res.json(result);
 });

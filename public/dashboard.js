@@ -78,6 +78,29 @@ function renderSpark(d) {
   document.getElementById('activity-spark').innerHTML = svgSparkline(points, { width: 1180, height: 70, color: '#6d83f2' });
 }
 
+async function renderFleet() {
+  try {
+    const res = await fetch('/api/fleet');
+    const { fleet } = await res.json();
+    document.getElementById('fleet-count').textContent = fleet.length ? `${fleet.length} remote session(s)` : '';
+    document.getElementById('fleet-list').innerHTML = fleet.length
+      ? `<table><thead><tr><th>Session</th><th>Source host</th><th>Events</th><th>First seen</th><th>Last heard from</th><th>Status</th></tr></thead><tbody>${
+          fleet.map(f => `
+            <tr>
+              <td><a href="/session.html?id=${encodeURIComponent(f.sessionId)}" class="mono" style="color:inherit">${esc(f.sessionId.slice(0, 24))}</a><div class="session-sub">${esc(f.cwd || '')}</div></td>
+              <td class="mono">${esc(f.sourceHost)}</td>
+              <td class="mono">${fmtNum(f.eventCount)}</td>
+              <td class="session-sub">${timeAgo(f.firstReceivedAt)}</td>
+              <td class="session-sub">${timeAgo(f.lastReceivedAt)}</td>
+              <td>${f.healthy ? '<span class="badge ok">reporting</span>' : '<span class="badge danger">stale</span>'}</td>
+            </tr>`).join('')
+        }</tbody></table>`
+      : '<div class="empty">No remote harnesses reporting via OTel yet. See the README\'s "Monitoring a remote/multi-machine harness" section for how to point one at this dashboard\'s /v1/logs endpoint.</div>';
+  } catch (e) {
+    document.getElementById('fleet-list').innerHTML = `<div class="empty">error: ${esc(e.message)}</div>`;
+  }
+}
+
 let lastTrendFetch = 0;
 function maybeRenderTrends() {
   // /api/history only gains a new point once a minute (see lib/history.js) - no
@@ -316,6 +339,7 @@ async function load() {
     renderSpark(d);
     maybeRenderTrends();
     renderLive(d);
+    renderFleet();
     renderToolBars(d);
     renderCostBars(d);
     renderSessions(d);

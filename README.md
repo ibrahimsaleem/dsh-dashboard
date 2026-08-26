@@ -110,9 +110,13 @@ This started as "I want to see what my harness is doing" and turned into a real 
 - ~~[OpenTelemetry bridge](https://github.com/ibrahimsaleem/dsh-dashboard/issues/4)~~ — done (`lib/otel.js`, `POST /v1/logs`)
 - ~~[A real preventive mode](https://github.com/ibrahimsaleem/dsh-dashboard/issues/5)~~ — done (`guardian-plugin/`), via `ctx.tools.guard()` rather than the approval seam originally guessed at
 
+Since then, shipped:
+
+- **Remote fleet view** — OTel-sourced sessions get their own panel (source host, event count, first/last-seen, a "reporting"/"stale" health badge based on wall-clock receipt time, not just event timestamps) instead of only being tagged `source: otel` in the shared tables
+- **Paginated session drill-down** — a busy session's timeline could run into the hundreds of events; `/api/session/:id` now returns the most recent 100 by default with a `beforeSeq` cursor for a "load earlier events" button, and turn/step boundary markers render as thin dividers instead of full cards so the meaningful content (prompts, tool calls, messages) isn't buried
+
 Ideas for where it goes from here — genuinely open, none of these are scoped yet:
 
-- A UI panel for OTel-sourced sessions specifically (right now they're just tagged `source: otel` in the same tables; a dedicated "remote fleet" view would be more useful once more than one remote harness is reporting in)
 - Redaction rules for the OTel path, since `FULL` mode ships raw message/tool content by default
 - Expanding `guardian-plugin`'s rule set past the 5 seed patterns, and packaging it for easier install (right now it's a manual `cordis.patch.yml` edit)
 - Multi-user/team view if this ever needs to watch more than one person's harness
