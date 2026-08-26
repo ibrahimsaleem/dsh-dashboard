@@ -57,6 +57,19 @@ Everything is read directly from `~/.dsh` on disk, on a polling loop:
 
 `lib/pricing.json` holds researched per-model pricing (USD / 1M tokens). A session's cost is split across whichever model(s) it used, weighted by each model's share of requests within that session (the log only carries per-session token totals, not a per-request breakdown, so this is a weighted approximation, not exact accounting). Models with no pricing entry are marked as unknown rather than silently costed at $0.
 
+## Prerequisites
+
+This dashboard doesn't bundle or depend on the harness's source code — it only reads the runtime files `dsh` writes to `~/.dsh` (settings, session logs), so all you need is the CLI itself:
+
+```bash
+npm install -g @deepseek-ai/dsh
+dsh web
+```
+
+That starts the harness's own Web UI at `http://127.0.0.1:3080`. Use it for at least one session (send a prompt, run a tool) so `~/.dsh` has something to read — the dashboard shows an empty state gracefully, but there's nothing to look at until `dsh` has written some data.
+
+Upstream source: [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) · fork: [ibrahimsaleem/deepseek-harness](https://github.com/ibrahimsaleem/deepseek-harness)
+
 ## Running it
 
 ```bash
