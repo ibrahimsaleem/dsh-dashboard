@@ -72,7 +72,9 @@ To point a `dsh` instance at this dashboard, add to its profile config (e.g. via
           url: http://<this-dashboard-host>:4590/v1/logs
 ```
 
-Read `dsh-session-telemetry-otel`'s own README before enabling `FULL` mode on anything you don't fully trust the destination of: it exports the complete raw event content (message text, tool arguments/output, system prompt), unredacted by default.
+Read `dsh-session-telemetry-otel`'s own README before enabling `FULL` mode on anything you don't fully trust the destination of: it exports the complete raw event content (message text, tool arguments/output, system prompt), unredacted by default at the source.
+
+This receiver applies its own redaction on ingest regardless (`lib/redact.js`): key-name-based (any field named like `apiKey`/`password`/`secret`/`token`/`credential`/`authorization` is fully blanked, not pattern-matched) plus value-shaped patterns for secrets that show up in free text - `sk-…` and AWS-style keys, PEM private key blocks, `Bearer …` headers, JWTs. It recurses into `tool/call`'s JSON-encoded `arguments` string too, not just top-level fields. Nothing unredacted is ever stored, even in this process's own memory. Set `DASHBOARD_OTEL_REDACT=false` to disable (e.g. a trusted loopback-only setup where you want the unredacted timeline). This is pattern-based, same caveat as `lib/security.js` - not a substitute for not exporting secrets in the first place.
 
 ## Cost estimation
 
@@ -115,9 +117,10 @@ Since then, shipped:
 - **Remote fleet view** — OTel-sourced sessions get their own panel (source host, event count, first/last-seen, a "reporting"/"stale" health badge based on wall-clock receipt time, not just event timestamps) instead of only being tagged `source: otel` in the shared tables
 - **Paginated session drill-down** — a busy session's timeline could run into the hundreds of events; `/api/session/:id` now returns the most recent 100 by default with a `beforeSeq` cursor for a "load earlier events" button, and turn/step boundary markers render as thin dividers instead of full cards so the meaningful content (prompts, tool calls, messages) isn't buried
 
+- **OTel ingest redaction** — `lib/redact.js`, applied before anything is stored, default on
+
 Ideas for where it goes from here — genuinely open, none of these are scoped yet:
 
-- Redaction rules for the OTel path, since `FULL` mode ships raw message/tool content by default
 - Expanding `guardian-plugin`'s rule set past the 5 seed patterns, and packaging it for easier install (right now it's a manual `cordis.patch.yml` edit)
 - Multi-user/team view if this ever needs to watch more than one person's harness
 
