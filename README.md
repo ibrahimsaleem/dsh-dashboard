@@ -83,11 +83,11 @@ Opens on `http://127.0.0.1:4590`, bound to localhost only. Override with `DASHBO
 
 This started as "I want to see what my harness is doing" and turned into a real observability layer built entirely from the outside. Ideas for where this goes next:
 
-- Historical trend charts (cost/tokens over days, not just a live snapshot)
-- Per-session drill-down pages with the full timeline
-- CSV/JSON export
-- OpenTelemetry bridge (`dsh` already ships `dsh-session-telemetry-otel` — wiring this dashboard to consume that instead of/alongside raw log polling would make it work for remote/multi-machine harness deployments, not just local)
-- A real preventive mode, built as an actual `dsh` plugin hooking the approval pipeline, once the read-only version has proven itself
+- [Historical trend charts](https://github.com/ibrahimsaleem/dsh-dashboard/issues/1) (cost/tokens over days, not just a live snapshot)
+- [Per-session drill-down pages](https://github.com/ibrahimsaleem/dsh-dashboard/issues/2) with the full timeline
+- [CSV/JSON export](https://github.com/ibrahimsaleem/dsh-dashboard/issues/3)
+- [OpenTelemetry bridge](https://github.com/ibrahimsaleem/dsh-dashboard/issues/4) (`dsh` already ships `dsh-session-telemetry-otel` — wiring this dashboard to consume that instead of/alongside raw log polling would make it work for remote/multi-machine harness deployments, not just local)
+- [A real preventive mode](https://github.com/ibrahimsaleem/dsh-dashboard/issues/5), built as an actual `dsh` plugin hooking the approval pipeline, once the read-only version has proven itself
 
 Contributions and ideas welcome — this is meant to be a starting point for harness observability, not a finished product.
 
