@@ -1,0 +1,24 @@
+{
+  "_note": "USD per 1,000,000 tokens. Off-peak rates (peak windows roughly double: 01:00-04:00 & 06:00-10:00 UTC, Mon-Fri). cacheWrite is not separately published by either source as of research date; assumed equal to input rate. Researched 2026-08-26 via web search - re-verify before relying on this for real budgeting.",
+  "openrouter/deepseek/deepseek-v4-flash-vision-exp": {
+    "input": 0.22, "output": 0.66, "cacheRead": 0.007, "cacheWrite": 0.22,
+    "source": "https://openrouter.ai/deepseek/deepseek-v4-flash-vision-exp"
+  },
+  "openrouter/stealth/ox-alpha": {
+    "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0,
+    "note": "Free promotional stealth-model preview; OpenRouter may end this without notice.",
+    "source": "https://openrouter.ai/stealth/ox-alpha"
+  },
+  "deepseek-official/deepseek-v4-flash": {
+    "input": 0.22, "output": 0.66, "cacheRead": 0.007, "cacheWrite": 0.22,
+    "source": "https://deepseek.ai/pricing"
+  },
+  "deepseek-official/deepseek-v4-flash-vision-exp": {
+    "input": 0.22, "output": 0.66, "cacheRead": 0.007, "cacheWrite": 0.22,
+    "source": "https://deepseek.ai/pricing"
+  },
+  "deepseek-official/deepseek-v4-pro": {
+    "input": 0.66, "output": 1.98, "cacheRead": 0.007, "cacheWrite": 0.66,
+    "source": "https://deepseek.ai/pricing"
+  }
+}

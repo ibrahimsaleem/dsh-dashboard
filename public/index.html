@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DSH Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1><span class="dot" id="live-dot"></span> DSH Monitor</h1>
+  <div class="meta">
+    <span id="watching"></span>
+    <span id="updated">loading…</span>
+  </div>
+</header>
+<main>
+
+  <div class="guard-panel" id="guard-panel">
+    <div class="guard-left">
+      <label class="switch">
+        <input type="checkbox" id="guard-toggle" />
+        <span class="slider"></span>
+      </label>
+      <div>
+        <div class="guard-title" id="guard-title">Kill switch: disarmed</div>
+        <div class="guard-sub">
+          When armed, the moment a high-confidence malicious pattern (not routine risky commands) is detected in a
+          fresh tool call, this immediately force-stops every running <span class="mono">dsh</span> process. Reactive,
+          not preventive — it can only act after the command was already logged, so treat it as a fast circuit
+          breaker, not a guarantee.
+        </div>
+        <div class="rule-chips" id="autokill-chips"></div>
+      </div>
+    </div>
+    <div class="guard-right">
+      <span id="guard-status-badge"></span>
+      <button class="btn danger" id="stop-now-btn">Stop harness now</button>
+    </div>
+  </div>
+
+  <div class="stat-grid" id="stats"></div>
+
+  <div class="panel full-width" id="live-panel">
+    <h2>Live activity <span class="count" id="live-count"></span></h2>
+    <div id="live-list"></div>
+  </div>
+
+  <div class="chart-row">
+    <div class="panel">
+      <h2>Token composition</h2>
+      <div id="token-donut"></div>
+    </div>
+    <div class="panel">
+      <h2>Session permission risk</h2>
+      <div id="risk-donut"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Activity, last 30 min <span class="count">tool calls / minute</span></h2>
+    <div id="activity-spark" class="sparkline-wrap"></div>
+  </div>
+
+  <div class="panels">
+    <div>
+      <div class="panel">
+        <h2>Tool calls by name <span class="count" id="tool-total"></span></h2>
+        <div id="tool-bars"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Estimated cost by model <span class="count" id="cost-total"></span></h2>
+        <div id="cost-bars"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Sessions <span class="count" id="session-count"></span></h2>
+        <div style="overflow-x:auto">
+        <table id="session-table">
+          <thead><tr>
+            <th>Session</th><th>State</th><th>Turns</th><th>Tool calls</th>
+            <th>Tokens</th><th>Cost</th><th>Permission</th><th>Last activity</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Harness processes <span class="count" id="proc-count"></span></h2>
+        <div id="proc-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Models connected <span class="count" id="model-count"></span></h2>
+        <div style="overflow-x:auto">
+        <table id="model-table">
+          <thead><tr><th>Route</th><th>Model</th><th>Key set</th><th>Requests</th><th>$/1M in-out</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Security findings <span class="count" id="finding-count"></span></h2>
+        <div id="findings-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Permission &amp; sandbox timeline</h2>
+        <div id="perm-list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-backdrop hidden" id="modal-backdrop">
+  <div class="modal">
+    <h3 id="modal-title">Arm kill switch?</h3>
+    <p id="modal-body"></p>
+    <div class="actions">
+      <button class="btn" id="modal-cancel">Cancel</button>
+      <button class="btn danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="charts.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>
