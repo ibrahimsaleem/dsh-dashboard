@@ -10,6 +10,8 @@
 <header>
   <h1><span class="dot" id="live-dot"></span> DSH Monitor</h1>
   <div class="meta">
+    <a class="btn" href="/api/export.json" style="padding:6px 12px;font-size:11px">Export JSON</a>
+    <a class="btn" href="/api/export/sessions.csv" style="padding:6px 12px;font-size:11px">Export CSV</a>
     <span id="watching"></span>
     <span id="updated">loading…</span>
   </div>
@@ -62,6 +64,17 @@
     <div id="activity-spark" class="sparkline-wrap"></div>
   </div>
 
+  <div class="chart-row">
+    <div class="panel">
+      <h2>Token trend <span class="count" id="trend-range"></span></h2>
+      <div id="tokens-trend" class="sparkline-wrap"></div>
+    </div>
+    <div class="panel">
+      <h2>Cost trend</h2>
+      <div id="cost-trend" class="sparkline-wrap"></div>
+    </div>
+  </div>
+
   <div class="panels">
     <div>
       <div class="panel">
@@ -79,7 +92,7 @@
         <div style="overflow-x:auto">
         <table id="session-table">
           <thead><tr>
-            <th>Session</th><th>State</th><th>Turns</th><th>Tool calls</th>
+            <th>Session</th><th>Source</th><th>State</th><th>Turns</th><th>Tool calls</th>
             <th>Tokens</th><th>Cost</th><th>Permission</th><th>Last activity</th>
           </tr></thead>
           <tbody></tbody>

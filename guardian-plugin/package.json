@@ -1,0 +1,8 @@
+{
+  "name": "dsh-dashboard-guardian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "description": "Preventive DeepSeek Harness tool-call guard: synchronously denies a short list of high-confidence malicious command patterns before they execute, via ctx.tools.guard()."
+}

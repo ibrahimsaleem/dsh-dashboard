@@ -22,8 +22,11 @@ So this exists to fix that, entirely from the outside: **no `dsh` plugin, no for
 - **Tool-call and cost breakdowns** by name/model, as bar charts
 - **Security findings** — a heuristic scanner runs over every prompt and tool-call argument in the logs, flagging destructive filesystem ops, pipe-to-shell patterns, credential dumping, reverse shells, secret literals, persistence mechanisms, and more
 - **Permission/sandbox timeline** — every preset/sandbox/approval change across every session, flagged when it lands on `danger-full-access` or `never`
-- **Estimated cost**, researched against real OpenRouter/DeepSeek pricing (see `lib/pricing.json`), split per session by which model(s) it actually used
+- **Estimated cost**, researched against real OpenRouter/DeepSeek pricing (see `lib/pricing.json`), split per session by which model(s) it actually used, plus a **token/cost trend chart** sampled once a minute (`lib/history.js`) so you get a real trend line, not just a live snapshot
+- **Per-session drill-down** — click any session to see its full readable timeline (`session.html`): every prompt, tool call + result, permission change, turn/step boundary — reduced from the raw streaming event log (`lib/timeline.js` drops chunk-level noise and keeps what a human would want to read)
+- **JSON/CSV export** — `/api/export.json` and `/api/export/sessions.csv`, linked from the header
 - **Kill switch** — see below
+- **A real preventive guard**, as a separate optional harness plugin — see [guardian-plugin/](guardian-plugin/)
 
 ## The kill switch
 
@@ -33,7 +36,7 @@ A toggle that arms a watchdog: the instant a *high-confidence* malicious pattern
 
 - It's **reactive, not preventive**. It can only act after `dsh` has already logged the tool call to disk — for a fast, single-shot destructive command, execution may finish before the kill lands. Treat it as a fast circuit breaker, not a guarantee.
 - Auto-kill is deliberately restricted to a short allowlist of low-false-positive patterns. Things like `rm -rf` or `taskkill /f` are flagged and shown in the findings list, but excluded from auto-kill, because they're routine in normal dev work (`rm -rf node_modules`, killing a stuck dev server) and would make the switch fire constantly on legitimate commands.
-- A real *preventive* block would need to hook into `dsh`'s own approval/permission pipeline as a harness plugin — a materially deeper (and riskier) integration than reading log files. This is the honest, lower-risk version: fast detection and a hard stop, not a guarantee nothing dangerous ever runs.
+- A real *preventive* block needs to run **inside** the harness process, with a hook that fires before dispatch. That turned out to exist: `dsh-tools` exposes `ctx.tools.guard()`, a synchronous callback evaluated after `tools/pre-execute` and before the tool body runs, which receives the tool's actual parsed arguments and can deny with a reason string. That's a real Cordis plugin, not a dashboard feature — see [guardian-plugin/](guardian-plugin/) for the implementation and why it's a materially stronger guarantee than this kill switch (and why `ctx.approval`, the seam that looked like the obvious place for this at first, isn't sufficient — it never sees a tool call's arguments, only its name).
 
 ## How it works (no `dsh` plugin required)
 
@@ -52,6 +55,24 @@ Everything is read directly from `~/.dsh` on disk, on a polling loop:
 `dsh` session logs are `session.jsonl.zstd` — but not a single zstd stream. Each append batch is compressed as its **own independent zstd frame**, and the frames are just concatenated in the file. Node's one-shot `zlib.zstdDecompressSync()` (and even the streaming `createZstdDecompress()`) only reads the *first* frame and silently stops there.
 
 `lib/sessions.js` scans for zstd magic bytes (`28 B5 2F FD`) to find each frame's start offset, decompresses each frame separately, and concatenates the results. It also caches per-file decode state (size + last processed byte offset) so a poll only decodes *newly appended* frames instead of re-decoding the whole file every 3 seconds — this is what keeps the live view fast even as a session log grows past a megabyte.
+
+## Monitoring a remote/multi-machine harness (OpenTelemetry bridge)
+
+Everything above assumes this dashboard shares a filesystem with `dsh` — fine for local use, useless for a harness running somewhere else. `dsh` already ships `dsh-session-telemetry-otel`, an opt-in OTel log exporter; `lib/otel.js` implements a receiver for it (`POST /v1/logs`), grounded directly in that package's source (not guessed): it maps `attributes["session.id"/"event.type"/"event.seq"/"session.cwd"/"session.parent_id"]` and `body` (== the event's `.data`, `structuredClone`d) back into the exact same `{type, seq, time, data}` shape the local zstd-log reader produces, so OTel-sourced sessions flow through the identical aggregation/timeline code as local ones — they just show up tagged `source: otel` instead of `source: local`.
+
+To point a `dsh` instance at this dashboard, add to its profile config (e.g. via `cordis.patch.yml`, same mechanism `guardian-plugin/README.md` documents):
+
+```yaml
+- insert:
+    - id: sessionTelemetry-otel
+      name: '@deepseek-ai/dsh-session-sessionTelemetry-otel'
+      config:
+        mode: FULL
+        exporter:
+          url: http://<this-dashboard-host>:4590/v1/logs
+```
+
+Read `dsh-session-telemetry-otel`'s own README before enabling `FULL` mode on anything you don't fully trust the destination of: it exports the complete raw event content (message text, tool arguments/output, system prompt), unredacted by default.
 
 ## Cost estimation
 
@@ -81,13 +102,20 @@ Opens on `http://127.0.0.1:4590`, bound to localhost only. Override with `DASHBO
 
 ## What's next
 
-This started as "I want to see what my harness is doing" and turned into a real observability layer built entirely from the outside. Ideas for where this goes next:
+This started as "I want to see what my harness is doing" and turned into a real observability layer built entirely from the outside, plus one small piece (`guardian-plugin/`) that runs inside. Everything originally on the roadmap has shipped:
 
-- [Historical trend charts](https://github.com/ibrahimsaleem/dsh-dashboard/issues/1) (cost/tokens over days, not just a live snapshot)
-- [Per-session drill-down pages](https://github.com/ibrahimsaleem/dsh-dashboard/issues/2) with the full timeline
-- [CSV/JSON export](https://github.com/ibrahimsaleem/dsh-dashboard/issues/3)
-- [OpenTelemetry bridge](https://github.com/ibrahimsaleem/dsh-dashboard/issues/4) (`dsh` already ships `dsh-session-telemetry-otel` — wiring this dashboard to consume that instead of/alongside raw log polling would make it work for remote/multi-machine harness deployments, not just local)
-- [A real preventive mode](https://github.com/ibrahimsaleem/dsh-dashboard/issues/5), built as an actual `dsh` plugin hooking the approval pipeline, once the read-only version has proven itself
+- ~~[Historical trend charts](https://github.com/ibrahimsaleem/dsh-dashboard/issues/1)~~ — done (`lib/history.js`, the Token/Cost trend panels)
+- ~~[Per-session drill-down pages](https://github.com/ibrahimsaleem/dsh-dashboard/issues/2)~~ — done (`session.html`, `lib/timeline.js`)
+- ~~[CSV/JSON export](https://github.com/ibrahimsaleem/dsh-dashboard/issues/3)~~ — done (`/api/export.json`, `/api/export/sessions.csv`)
+- ~~[OpenTelemetry bridge](https://github.com/ibrahimsaleem/dsh-dashboard/issues/4)~~ — done (`lib/otel.js`, `POST /v1/logs`)
+- ~~[A real preventive mode](https://github.com/ibrahimsaleem/dsh-dashboard/issues/5)~~ — done (`guardian-plugin/`), via `ctx.tools.guard()` rather than the approval seam originally guessed at
+
+Ideas for where it goes from here — genuinely open, none of these are scoped yet:
+
+- A UI panel for OTel-sourced sessions specifically (right now they're just tagged `source: otel` in the same tables; a dedicated "remote fleet" view would be more useful once more than one remote harness is reporting in)
+- Redaction rules for the OTel path, since `FULL` mode ships raw message/tool content by default
+- Expanding `guardian-plugin`'s rule set past the 5 seed patterns, and packaging it for easier install (right now it's a manual `cordis.patch.yml` edit)
+- Multi-user/team view if this ever needs to watch more than one person's harness
 
 Contributions and ideas welcome — this is meant to be a starting point for harness observability, not a finished product.
 

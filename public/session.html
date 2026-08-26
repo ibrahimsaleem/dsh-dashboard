@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Session — DSH Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  .tl-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-time { width: 90px; flex-shrink: 0; color: var(--text-dim); font-size: 11px; padding-top: 2px; }
+  .tl-body { flex: 1; min-width: 0; }
+  .tl-label { font-size: 12.5px; font-weight: 600; }
+  .tl-detail { font-size: 11.5px; color: var(--text-dim); white-space: pre-wrap; word-break: break-word; margin-top: 4px; font-family: "Cascadia Code", Consolas, monospace; max-height: 160px; overflow-y: auto; background: var(--panel-2); border-radius: 6px; padding: 8px; }
+  .tl-detail:empty { display: none; }
+  .tl-type { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 8px; }
+  .back-link { color: var(--accent-2); text-decoration: none; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="/" class="back-link" style="margin-right:14px">&larr; DSH Monitor</a> Session detail</h1>
+  <div class="meta"><span id="meta"></span></div>
+</header>
+<main>
+  <div class="panel" id="head-panel"></div>
+  <div class="panel">
+    <h2>Timeline <span class="count" id="tl-count"></span></h2>
+    <div id="timeline"></div>
+  </div>
+</main>
+<script src="charts.js"></script>
+<script src="session.js"></script>
+</body>
+</html>

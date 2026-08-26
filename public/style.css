@@ -237,6 +237,7 @@ tr:last-child td { border-bottom: none; }
 .badge.danger { background: rgba(242,85,90,0.15); color: var(--high); }
 .badge.ok { background: rgba(59,199,143,0.15); color: var(--good); }
 .badge.neutral { background: var(--panel-2); color: var(--text-dim); }
+.badge.accent { background: rgba(109,131,242,0.15); color: var(--accent-2); }
 
 code, .mono {
   font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;

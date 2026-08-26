@@ -1,8 +1,11 @@
 const path = require('path');
 const os = require('os');
 const express = require('express');
-const { buildDashboard } = require('./lib/aggregate');
+const { buildDashboard, getSessionTimeline } = require('./lib/aggregate');
 const { killAllHarnessProcesses } = require('./lib/processes');
+const { router: otelRouter } = require('./lib/otel');
+const { readHistory } = require('./lib/history');
+const { sessionsToCsv } = require('./lib/csv');
 
 const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
 const PORT = process.env.DASHBOARD_PORT || 4590;
@@ -32,7 +35,7 @@ function refresh() {
 // (see lib/security.js) immediately stops every detected dsh process. This
 // is reactive, not preventive: it can only act after the harness has already
 // logged the tool call, so it's a fast circuit-breaker, not a guarantee the
-// command never ran.
+// command never ran. For genuine prevention, see guardian-plugin/.
 function checkGuard() {
   if (!guard.armed || !cache) return;
   const trigger = cache.securityFindings.find(f => f.autoKill && f.time > guard.armedAt);
@@ -48,6 +51,7 @@ refresh();
 setInterval(refresh, REFRESH_MS);
 
 const app = express();
+app.use('/', otelRouter()); // POST /v1/logs - OTLP/HTTP-JSON log receiver, see lib/otel.js
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -74,6 +78,30 @@ app.post('/api/kill-now', (req, res) => {
   res.json({ killed });
 });
 
+app.get('/api/history', (req, res) => {
+  res.json({ history: readHistory() });
+});
+
+app.get('/api/session/:id', (req, res) => {
+  const result = getSessionTimeline(DSH_HOME, req.params.id, Number(req.query.limit) || 500);
+  if (!result) return res.status(404).json({ error: 'session not found' });
+  res.json(result);
+});
+
+app.get('/api/export.json', (req, res) => {
+  if (!cache) return res.status(503).json({ error: lastError || 'not ready' });
+  res.setHeader('Content-Disposition', 'attachment; filename="dsh-dashboard-export.json"');
+  res.json(cache);
+});
+
+app.get('/api/export/sessions.csv', (req, res) => {
+  if (!cache) return res.status(503).send('not ready');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="dsh-sessions.csv"');
+  res.send(sessionsToCsv(cache.sessions));
+});
+
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`dsh-dashboard: http://127.0.0.1:${PORT} (watching ${DSH_HOME}, refresh ${REFRESH_MS}ms)`);
+  console.log(`dsh-dashboard: OTLP log receiver at http://127.0.0.1:${PORT}/v1/logs`);
 });

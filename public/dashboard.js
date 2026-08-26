@@ -37,6 +37,7 @@ function renderStats(d) {
     statCard('Sessions', fmtNum(s.sessionCount)),
     statCard('Running now', fmtNum(s.runningSessions), s.runningSessions > 0 ? 'good' : ''),
     statCard('Harness processes', fmtNum(s.harnessProcessCount), s.harnessProcessCount > 0 ? 'good' : 'high'),
+    statCard('OTel sessions', fmtNum(s.otelSessionCount), s.otelSessionCount > 0 ? 'accent' : '', 'remote, via /v1/logs'),
     statCard('Turns (requests)', fmtNum(s.totalTurns)),
     statCard('Prompts sent', fmtNum(s.totalPrompts)),
     statCard('Tool calls', fmtNum(s.totalToolCalls)),
@@ -75,6 +76,32 @@ function renderRiskDonut(d) {
 function renderSpark(d) {
   const points = d.activityTimeline.map(b => b.count);
   document.getElementById('activity-spark').innerHTML = svgSparkline(points, { width: 1180, height: 70, color: '#6d83f2' });
+}
+
+let lastTrendFetch = 0;
+function maybeRenderTrends() {
+  // /api/history only gains a new point once a minute (see lib/history.js) - no
+  // point refetching it every 3s refresh cycle.
+  if (Date.now() - lastTrendFetch < 30_000) return;
+  lastTrendFetch = Date.now();
+  renderTrends();
+}
+
+async function renderTrends() {
+  try {
+    const res = await fetch('/api/history');
+    const { history } = await res.json();
+    if (!history.length) {
+      document.getElementById('tokens-trend').innerHTML = '<div class="empty">No history yet — a snapshot is recorded once a minute, check back shortly.</div>';
+      document.getElementById('cost-trend').innerHTML = '<div class="empty">No history yet.</div>';
+      return;
+    }
+    document.getElementById('trend-range').textContent = `${history.length} snapshot${history.length === 1 ? '' : 's'}, since ${timeAgo(history[0].t)}`;
+    document.getElementById('tokens-trend').innerHTML = svgSparkline(history.map(h => h.totalTokens), { width: 570, height: 70, color: '#6d83f2' });
+    document.getElementById('cost-trend').innerHTML = svgSparkline(history.map(h => h.estimatedCostUsd), { width: 570, height: 70, color: '#3bc78f' });
+  } catch (e) {
+    document.getElementById('tokens-trend').innerHTML = `<div class="empty">error: ${esc(e.message)}</div>`;
+  }
 }
 
 function renderToolBars(d) {
@@ -131,9 +158,10 @@ function renderSessions(d) {
     const costLabel = fmtUsd(cost) + (s.cost.unknownShare > 0 ? ' *' : '');
     return `<tr>
       <td>
-        <div class="session-title">${s.running ? '<span class="pulse-dot" style="margin-right:6px"></span>' : ''}${esc(s.title || s.dirName)}</div>
+        <a href="/session.html?id=${encodeURIComponent(s.id)}" class="session-title" style="text-decoration:none;color:inherit">${s.running ? '<span class="pulse-dot" style="margin-right:6px"></span>' : ''}${esc(s.title || s.dirName)}</a>
         <div class="session-sub mono">${esc(s.origin)}${s.parentSession ? ' · sub of ' + esc(s.parentSession.slice(0, 12)) : ''}</div>
       </td>
+      <td><span class="badge ${s.source === 'otel' ? 'accent' : 'neutral'}">${esc(s.source)}</span></td>
       <td>${s.running ? '<span class="badge running">running</span>' : '<span class="badge neutral">idle</span>'}</td>
       <td class="mono">${fmtNum(s.turns)}</td>
       <td class="mono">${fmtNum(s.toolCalls)}</td>
@@ -142,7 +170,7 @@ function renderSessions(d) {
       <td>${permBadge(s.permissions)}</td>
       <td class="session-sub">${timeAgo(s.lastActivity)}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="8" class="empty">No sessions found.</td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">No sessions found.</td></tr>';
 }
 
 function renderModels(d) {
@@ -286,6 +314,7 @@ async function load() {
     renderTokenDonut(d);
     renderRiskDonut(d);
     renderSpark(d);
+    maybeRenderTrends();
     renderLive(d);
     renderToolBars(d);
     renderCostBars(d);
